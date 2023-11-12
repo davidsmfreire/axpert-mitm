@@ -1,4 +1,4 @@
-# Axpert Man in the middle
+# Axpert with a Man in the middle
 
 This is a personal project featuring a TCP interceptor that captures data from a Voltronix Axpert inverter to store in MySQL database and integrate with Home Assistant via RESTApi.
 
