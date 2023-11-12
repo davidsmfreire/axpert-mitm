@@ -1,0 +1,11 @@
+[Unit]
+Description=Axpert
+After=network.target
+
+[Service]
+ExecStart=/home/pi/axpert-mitm/target/release/axpert-mitm
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target

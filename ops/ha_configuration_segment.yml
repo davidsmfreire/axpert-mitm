@@ -1,0 +1,40 @@
+rest:
+  - scan_interval: 30
+    resource: http://localhost:5678/
+    sensor:
+      - name: "PV Stats"
+        value_template: "{{value_json.pv_power}} W"
+        json_attributes:
+            - "pv_power"
+            - "pv_voltage"
+            - "pv_current"
+      - name: "Inverter Output Stats"
+        value_template: "{{value_json.ac_output_apparent_power}} VA ({{value_json.ac_output_active_power}} W)"
+        json_attributes:
+          - "ac_output_voltage"
+          - "ac_output_apparent_power"
+          - "ac_output_active_power"
+      - name: "Battery Stats"
+        value_template: "{{value_json.bat_capacity}} % ({{((value_json.bat_charge_current - value_json.bat_discharge_current) * value_json.bat_voltage) | round(1)}} W)"
+        json_attributes:
+          - "bat_charge_current"
+          - "bat_voltage"
+          - "bat_discharge_current"
+          - "bat_capacity"
+      - name: "Inverter Health"
+        value_template: "{{value_json.heat_sink_temp}} ªC"
+        json_attributes:
+          - "heat_sink_temp"
+
+      - name: "PV Power"
+        value_template: "{{value_json.pv_power}}"
+        json_attributes:
+            - "pv_power"
+      - name: "Consumption Power"
+        value_template: "{{value_json.ac_output_apparent_power}}"
+        json_attributes:
+          - "ac_output_apparent_power"
+      - name: "Battery Capacity"
+        value_template: "{{value_json.bat_capacity}}"
+        json_attributes:
+          - "bat_capacity"
