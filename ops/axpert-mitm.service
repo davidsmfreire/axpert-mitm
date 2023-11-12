@@ -3,9 +3,10 @@ Description=Axpert
 After=network.target
 
 [Service]
+WorkingDirectory=/home/pi/axpert-mitm
 ExecStart=/home/pi/axpert-mitm/target/release/axpert-mitm
 Restart=always
-User=pi
+User=root
 
 [Install]
 WantedBy=multi-user.target
