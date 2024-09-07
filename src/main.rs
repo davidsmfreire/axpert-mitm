@@ -92,17 +92,14 @@ async fn inverter_current_data(data: Data<Mutex<AppData>>) -> impl Responder {
         if (dtn - sniffer_data.timestamp).num_seconds() < 60 {
             println!("Returning sniffer data, its not older than 60 seconds...");
             return HttpResponse::Ok().json(sniffer_data);
-        } else {
-            if let Some(api_data) = &app_data.api_data {
-                if sniffer_data.timestamp < api_data.timestamp {
-                    println!("Returning sniffer data, its not older api data...");
-                    return HttpResponse::Ok().json(sniffer_data);
-                }
+        }
+        if let Some(api_data) = &app_data.api_data {
+            if sniffer_data.timestamp < api_data.timestamp {
+                println!("Returning sniffer data, its not older than api data...");
+                return HttpResponse::Ok().json(sniffer_data);
             }
         }
     }
-
-    println!("Don't have sniffer data...");
 
     if let Some(api_data) = &app_data.api_data {
         if (dtn - api_data.timestamp).num_seconds() < 60 {
