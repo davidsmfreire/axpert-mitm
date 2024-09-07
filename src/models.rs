@@ -1,19 +1,20 @@
-use mysql::{Conn, params, prelude::Queryable};
+use chrono::{NaiveDateTime, Utc};
+use mysql::{params, prelude::Queryable, Conn};
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct InverterStatusQPIGS {
-    add_sbu_priority_version: bool,
-    config_changed: bool,
-    scc_firmware_updates: bool,
-    load_on: bool,
-    bat_volt_to_steady: bool,
-    charging: bool,
-    charging_scc: bool,
-    charging_ac: bool,
-    charging_to_floating_point: bool,
-    switch_on: bool,
-    reserved: bool,
+    pub add_sbu_priority_version: bool,
+    pub config_changed: bool,
+    pub scc_firmware_updates: bool,
+    pub load_on: bool,
+    pub bat_volt_to_steady: bool,
+    pub charging: bool,
+    pub charging_scc: bool,
+    pub charging_ac: bool,
+    pub charging_to_floating_point: bool,
+    pub switch_on: bool,
+    pub reserved: bool,
 }
 
 impl InverterStatusQPIGS {
@@ -24,45 +25,73 @@ impl InverterStatusQPIGS {
                 .next()
                 .ok_or("Error parsing add_sbu_priority_version, no more chars!")?
                 == '1',
-            config_changed: chars.next().ok_or("Error parsing config_changed, no more chars!")? == '1',
-            scc_firmware_updates: chars.next().ok_or("Error parsing scc_firmware_updates, no more chars!")? == '1',
-            load_on: chars.next().ok_or("Error parsing load_on, no more chars!")? == '1',
-            bat_volt_to_steady: chars.next().ok_or("Error parsing bat_volt_to_steady, no more chars!")? == '1',
-            charging: chars.next().ok_or("Error parsing charging, no more chars!")? == '1',
-            charging_scc: chars.next().ok_or("Error parsing charging_scc, no more chars!")? == '1',
-            charging_ac: chars.next().ok_or("Error parsing charging_ac, no more chars!")? == '1',
+            config_changed: chars
+                .next()
+                .ok_or("Error parsing config_changed, no more chars!")?
+                == '1',
+            scc_firmware_updates: chars
+                .next()
+                .ok_or("Error parsing scc_firmware_updates, no more chars!")?
+                == '1',
+            load_on: chars
+                .next()
+                .ok_or("Error parsing load_on, no more chars!")?
+                == '1',
+            bat_volt_to_steady: chars
+                .next()
+                .ok_or("Error parsing bat_volt_to_steady, no more chars!")?
+                == '1',
+            charging: chars
+                .next()
+                .ok_or("Error parsing charging, no more chars!")?
+                == '1',
+            charging_scc: chars
+                .next()
+                .ok_or("Error parsing charging_scc, no more chars!")?
+                == '1',
+            charging_ac: chars
+                .next()
+                .ok_or("Error parsing charging_ac, no more chars!")?
+                == '1',
             charging_to_floating_point: chars
                 .next()
                 .ok_or("Error parsing charging_to_floating_point, no more chars!")?
                 == '1',
-            switch_on: chars.next().ok_or("Error parsing switch_on, no more chars!")? == '1',
-            reserved: chars.next().ok_or("Error parsing reserved, no more chars!")? == '1',
+            switch_on: chars
+                .next()
+                .ok_or("Error parsing switch_on, no more chars!")?
+                == '1',
+            reserved: chars
+                .next()
+                .ok_or("Error parsing reserved, no more chars!")?
+                == '1',
         })
     }
 }
 
 #[derive(Debug, Serialize, Clone)]
 pub struct InverterDataQPIGS {
-    grid_voltage: f32,
-    grid_frequency: f32,
-    ac_output_voltage: f32,
-    ac_output_frequency: f32,
-    ac_output_apparent_power: u16,
-    ac_output_active_power: f32,
-    ac_output_load_percent: f32,
-    bus_voltage: f32,
-    bat_voltage: f32,
-    bat_charge_current: f32,
-    bat_capacity: f32,
-    heat_sink_temp: f32,
-    pv_current: f32,
-    pv_voltage: f32,
-    bat_voltage_from_scc: f32,
-    bat_discharge_current: f32,
-    bat_volt_offset: f32,
-    eeprom_version: u16,
-    pv_power: u16,
-    status: InverterStatusQPIGS,
+    pub timestamp: NaiveDateTime,
+    pub grid_voltage: f32,
+    pub grid_frequency: f32,
+    pub ac_output_voltage: f32,
+    pub ac_output_frequency: f32,
+    pub ac_output_apparent_power: u16,
+    pub ac_output_active_power: f32,
+    pub ac_output_load_percent: f32,
+    pub bus_voltage: f32,
+    pub bat_voltage: f32,
+    pub bat_charge_current: f32,
+    pub bat_capacity: f32,
+    pub heat_sink_temp: f32,
+    pub pv_current: f32,
+    pub pv_voltage: f32,
+    pub bat_voltage_from_scc: f32,
+    pub bat_discharge_current: f32,
+    pub bat_volt_offset: f32,
+    pub eeprom_version: u16,
+    pub pv_power: u16,
+    pub status: InverterStatusQPIGS,
 }
 
 impl InverterDataQPIGS {
@@ -72,7 +101,8 @@ impl InverterDataQPIGS {
         let index = packet.find("(").ok_or("Could not find start byte")?;
         let actual_information = packet.get(index + 1..index + 1 + 106).ok_or(format!(
             "String is too short to get the last {} to {} characters",
-            index + 1, index + 1 + 106
+            index + 1,
+            index + 1 + 106
         ))?;
         let mut iter = actual_information.split_ascii_whitespace();
 
@@ -102,15 +132,11 @@ impl InverterDataQPIGS {
         parse_field!(pv_voltage, f32);
         parse_field!(bat_voltage_from_scc, f32);
         parse_field!(bat_discharge_current, f32);
-        let device_status_1: &str = iter
-            .next()
-            .ok_or("Exhausted tokens on device_status_1")?;
+        let device_status_1: &str = iter.next().ok_or("Exhausted tokens on device_status_1")?;
         parse_field!(bat_volt_offset, f32);
         parse_field!(eeprom_version, u16);
         parse_field!(pv_power, u16);
-        let device_status_2: &str = iter
-            .next()
-            .ok_or("Exhausted tokens on device_status_2")?;
+        let device_status_2: &str = iter.next().ok_or("Exhausted tokens on device_status_2")?;
 
         let device_status: String = format!("{}{}", device_status_1, device_status_2);
 
@@ -118,6 +144,7 @@ impl InverterDataQPIGS {
             .map_err(|err| format!("Error getting inverter status: {err}"))?;
 
         Ok(Self {
+            timestamp: Utc::now().naive_utc(),
             grid_voltage,
             grid_frequency,
             ac_output_voltage,
@@ -141,7 +168,7 @@ impl InverterDataQPIGS {
         })
     }
 
-    pub fn to_mysql(self, conn: &mut Conn){
+    pub fn to_mysql(self, conn: &mut Conn) {
         let stmt: &str = r"insert into stats
             (inverter_id, grid_voltage, grid_frequency, ac_output_voltage, ac_output_frequency,
                 ac_output_apparent_power, ac_output_active_power, ac_output_load_percent, bus_voltage, bat_voltage,

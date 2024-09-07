@@ -1,11 +1,18 @@
-use std::{thread, sync::{Arc, Mutex}};
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+};
 
-use pcap::{Capture, Device};
 use mysql::Pool;
+use pcap::{Capture, Device};
 
 use crate::models::InverterDataQPIGS;
 
-fn run_tcp_sniffer(mut cap: Capture<pcap::Active>, pool: Pool, current_inverter_data: Arc<Mutex<Option<InverterDataQPIGS>>>) -> std::io::Result<()> {
+fn run_tcp_sniffer(
+    mut cap: Capture<pcap::Active>,
+    pool: Pool,
+    current_inverter_data: Arc<Mutex<Option<InverterDataQPIGS>>>,
+) -> std::io::Result<()> {
     while let Ok(packet) = cap.next_packet() {
         // println!("Captured packet: {:?}", packet.header);
         if packet.header.len == 172 {
@@ -42,27 +49,28 @@ pub(crate) async fn start_tcp_sniffer() -> Result<Arc<Mutex<Option<InverterDataQ
     let actual_device = target_device.ok_or("Target device wlan0 not found")?;
 
     println!("Starting wlan0 capture...");
-    
+
     let mut cap = Capture::from_device(actual_device)
-    .unwrap()
-    .promisc(true) // Enable promiscuous mode
-    .immediate_mode(true)
-    .open()
-    .map_err(|err| format!("Error initiating capture: {err}"))?;
+        .unwrap()
+        .promisc(true) // Enable promiscuous mode
+        .immediate_mode(true)
+        .open()
+        .map_err(|err| format!("Error initiating capture: {err}"))?;
 
     // Set a filter to capture only TCP packets
     cap.filter("tcp and dst host 47.242.188.205 and dst port 502", false)
         .unwrap();
 
     println!("Connecting to MySQL...");
-    let db_connection_pool: Pool = Pool::new(db_url.as_str()).expect("Could not connect to database");
+    let db_connection_pool: Pool =
+        Pool::new(db_url.as_str()).expect("Could not connect to database");
 
     let current_inverter_data = Arc::new(Mutex::new(None));
     let current_inverter_data_clone = current_inverter_data.clone();
 
     println!("Starting tcp sniffer thread...");
 
-    thread::spawn(||  run_tcp_sniffer(cap, db_connection_pool, current_inverter_data_clone));
+    thread::spawn(|| run_tcp_sniffer(cap, db_connection_pool, current_inverter_data_clone));
 
     Ok(current_inverter_data.clone())
 }
