@@ -60,7 +60,7 @@ impl AppData {
     fn update_api_data(&mut self) -> Option<WatchPowerLastData> {
         match self.api_client.login(
             &std::env::var("WATCHPOWER_API_USERNAME").expect("WATCHPOWER_API_USERNAME must be set"),
-            &std::env::var("WATCHPOWER_API_USERNAME").expect("WATCHPOWER_API_PASSWORD must be set"),
+            &std::env::var("WATCHPOWER_API_PASSWORD").expect("WATCHPOWER_API_PASSWORD must be set"),
         ) {
             Ok(_) => (),
             Err(err) => {
@@ -90,25 +90,32 @@ async fn inverter_current_data(data: Data<Mutex<AppData>>) -> impl Responder {
 
     if let Some(sniffer_data) = &*app_data.sniffer_data.lock().unwrap() {
         if (dtn - sniffer_data.timestamp).num_seconds() < 60 {
-            HttpResponse::Ok().json(sniffer_data);
+            println!("Returning sniffer data, its not older than 60 seconds...");
+            return HttpResponse::Ok().json(sniffer_data);
         } else {
             if let Some(api_data) = &app_data.api_data {
                 if sniffer_data.timestamp < api_data.timestamp {
-                    HttpResponse::Ok().json(sniffer_data);
+                    println!("Returning sniffer data, its not older api data...");
+                    return HttpResponse::Ok().json(sniffer_data);
                 }
             }
         }
     }
 
+    println!("Don't have sniffer data...");
+
     if let Some(api_data) = &app_data.api_data {
         if (dtn - api_data.timestamp).num_seconds() < 60 {
+            println!("Returning api data, its not older than 60 seconds...");
             let converted = inverter_data_from_watch_power_last_data(api_data);
             return HttpResponse::Ok().json(converted);
         }
-        if let Some(new_api_data) = app_data.update_api_data() {
-            let converted = inverter_data_from_watch_power_last_data(&new_api_data);
-            return HttpResponse::Ok().json(converted);
-        }
+    }
+
+    println!("Getting new api data...");
+    if let Some(new_api_data) = app_data.update_api_data() {
+        let converted = inverter_data_from_watch_power_last_data(&new_api_data);
+        return HttpResponse::Ok().json(converted);
     }
 
     HttpResponse::NotFound().json(json!({"Error": "Resource not found"}))

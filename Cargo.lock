@@ -2620,9 +2620,9 @@ checksum = "c62a0a307cb4a311d3a07867860911ca130c3494e8c2719593806c08bc5d0484"
 
 [[package]]
 name = "watchpower-api"
-version = "0.0.4"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d83e28af9878803cc40c6aaf701f59cb59948a9b38a3942a79ac02a6b3f96848"
+checksum = "e988ac0e10255c34c4aa4d8a8c2500b86864348e448f9bdbb9cfad06bb09e541"
 dependencies = [
  "chrono",
  "reqwest",
