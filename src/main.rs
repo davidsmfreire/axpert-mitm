@@ -18,7 +18,10 @@ struct AppData {
     api_client: WatchPowerAPI,
 }
 
-fn inverter_data_from_watch_power_last_data(input: &WatchPowerLastData) -> InverterDataQPIGS {
+fn inverter_data_from_watch_power_last_data(
+    input: &WatchPowerLastData,
+    last_sniffer_data: &Option<InverterDataQPIGS>,
+) -> InverterDataQPIGS {
     InverterDataQPIGS {
         timestamp: input.timestamp,
         grid_voltage: input.main.grid_voltage,
@@ -28,31 +31,43 @@ fn inverter_data_from_watch_power_last_data(input: &WatchPowerLastData) -> Inver
         ac_output_apparent_power: input.main.ac_output_apparent_power as u16,
         ac_output_active_power: input.main.ac_output_active_power as f32,
         ac_output_load_percent: input.main.output_load_percent as f32,
-        bus_voltage: -999.0,
+        bus_voltage: last_sniffer_data.as_ref()
+            .map(|data| data.bus_voltage)
+            .unwrap_or(-999.0),
         bat_voltage: input.main.battery_voltage,
         bat_charge_current: input.main.battery_charging_current,
         bat_capacity: input.main.battery_capacity as f32,
-        heat_sink_temp: -999.0,
+        heat_sink_temp: last_sniffer_data.as_ref()
+            .map(|data| data.heat_sink_temp)
+            .unwrap_or(-999.0),
         pv_current: input.pv.pv_input_current,
         pv_voltage: input.main.pv_input_voltage,
-        bat_voltage_from_scc: -999.0,
+        bat_voltage_from_scc: last_sniffer_data.as_ref()
+            .map(|data| data.bat_voltage_from_scc)
+            .unwrap_or(-999.0),
         bat_discharge_current: input.main.battery_discharge_current,
-        bat_volt_offset: -999.0,
-        eeprom_version: 0,
+        bat_volt_offset: last_sniffer_data.as_ref()
+            .map(|data| data.bat_volt_offset)
+            .unwrap_or(-999.0),
+        eeprom_version: last_sniffer_data.as_ref()
+            .map(|data| data.eeprom_version)
+            .unwrap_or(0),
         pv_power: input.main.pv_input_power as u16,
-        status: InverterStatusQPIGS {
-            add_sbu_priority_version: false,
-            config_changed: false,
-            scc_firmware_updates: false,
-            load_on: false,
-            bat_volt_to_steady: false,
-            charging: false,
-            charging_scc: false,
-            charging_ac: false,
-            charging_to_floating_point: false,
-            switch_on: false,
-            reserved: false,
-        },
+        status: last_sniffer_data.as_ref()
+            .map(|data| data.status.clone())
+            .unwrap_or(InverterStatusQPIGS {
+                add_sbu_priority_version: false,
+                config_changed: false,
+                scc_firmware_updates: false,
+                load_on: false,
+                bat_volt_to_steady: false,
+                charging: false,
+                charging_scc: false,
+                charging_ac: false,
+                charging_to_floating_point: false,
+                switch_on: false,
+                reserved: false,
+            }),
     }
 }
 
@@ -104,14 +119,14 @@ async fn inverter_current_data(data: Data<Mutex<AppData>>) -> impl Responder {
     if let Some(api_data) = &app_data.api_data {
         if (dtn - api_data.timestamp).num_seconds() < 60 {
             println!("Returning api data, its not older than 60 seconds...");
-            let converted = inverter_data_from_watch_power_last_data(api_data);
+            let converted = inverter_data_from_watch_power_last_data(api_data, &*app_data.sniffer_data.lock().unwrap());
             return HttpResponse::Ok().json(converted);
         }
     }
 
     println!("Getting new api data...");
     if let Some(new_api_data) = app_data.update_api_data() {
-        let converted = inverter_data_from_watch_power_last_data(&new_api_data);
+        let converted = inverter_data_from_watch_power_last_data(&new_api_data, &*app_data.sniffer_data.lock().unwrap());
         return HttpResponse::Ok().json(converted);
     }
 
